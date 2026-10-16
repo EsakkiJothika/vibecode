@@ -1,0 +1,108 @@
+{
+  "name": "agentic-ide",
+  "displayName": "Agentic IDE",
+  "description": "A VS Code interface for the Agentic IDE proof of concept.",
+  "version": "0.1.0",
+  "publisher": "agentic-ide-poc",
+  "license": "UNLICENSED",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:agenticIde.explorer",
+    "onView:agenticIde.chat",
+    "onCommand:agenticIde.listWorkspaceFiles",
+    "onCommand:agenticIde.searchCodebase",
+    "onCommand:agenticIde.readSelectedFile",
+    "onCommand:agenticIde.summarizeSelectedFile",
+    "onCommand:agenticIde.openAgentChat",
+    "onCommand:agenticIde.refreshExplorer"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "agenticIde.listWorkspaceFiles",
+        "title": "List Workspace Files",
+        "category": "Agentic IDE",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "agenticIde.searchCodebase",
+        "title": "Search Codebase",
+        "category": "Agentic IDE",
+        "icon": "$(search)"
+      },
+      {
+        "command": "agenticIde.readSelectedFile",
+        "title": "Read Selected File",
+        "category": "Agentic IDE",
+        "icon": "$(file-text)"
+      },
+      {
+        "command": "agenticIde.summarizeSelectedFile",
+        "title": "Summarize Selected File",
+        "category": "Agentic IDE",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "agenticIde.openAgentChat",
+        "title": "Open Agent Chat",
+        "category": "Agentic IDE",
+        "icon": "$(comment)"
+      },
+      {
+        "command": "agenticIde.refreshExplorer",
+        "title": "Refresh Agentic IDE Explorer",
+        "category": "Agentic IDE",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agenticIde",
+          "title": "Agentic IDE",
+          "icon": "media/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "agenticIde": [
+        {
+          "id": "agenticIde.explorer",
+          "name": "Workspace Actions",
+          "visibility": "visible"
+        },
+        {
+          "id": "agenticIde.chat",
+          "name": "Agent Chat",
+          "type": "webview",
+          "visibility": "visible"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "agenticIde.refreshExplorer",
+          "when": "view == agenticIde.explorer",
+          "group": "navigation"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.5.4"
+  }
+}
