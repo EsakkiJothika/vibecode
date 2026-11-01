@@ -1,6 +1,6 @@
 {
   "name": "agentic-ide-desktop",
-  "productName": "Agentic IDE",
+  "productName": "vibeCode",
   "version": "0.1.0",
   "private": true,
   "description": "A standalone, language-agnostic desktop IDE with a Python agent backend.",
@@ -13,6 +13,7 @@
     "build:main": "tsc -p tsconfig.main.json",
     "build:renderer": "vite build",
     "build": "npm run build:main && npm run build:renderer",
+    "test:backend": "npm run build:main && node --test tests/backendClient.test.cjs",
     "start": "npm run build && electron ."
   },
   "dependencies": {

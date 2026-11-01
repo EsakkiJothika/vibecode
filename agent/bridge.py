@@ -6,10 +6,18 @@ from typing import TextIO
 
 from agent.agent import CodebaseExplorer, ModelAgent
 from agent.model_client import ModelError, create_model_client_from_env
+from tools.file_writer import write_text_file
 from tools.workspace import iter_workspace_files
+from tools.workspace_operations import (
+    create_directory,
+    delete_workspace_path,
+    read_image_data_url,
+    resolve_workspace_path,
+    rename_workspace_path,
+)
 
 
-MAX_REQUEST_LENGTH = 1024 * 1024
+MAX_REQUEST_LENGTH = 8 * 1024 * 1024
 MAX_SUMMARY_PREVIEW_LINES = 8
 MAX_SUMMARY_PREVIEW_LINE_LENGTH = 240
 
@@ -41,7 +49,13 @@ def handle_request(request: object) -> dict[str, object]:
             "search-files",
             "search-text",
             "read-file",
+            "write-file",
             "summarize-file",
+            "create-directory",
+            "rename-path",
+            "delete-path",
+            "read-image",
+            "resolve-path",
             "chat",
         }:
             raise ValueError("Unsupported backend operation.")
@@ -77,7 +91,7 @@ def handle_request(request: object) -> dict[str, object]:
             case_sensitive = request.get("case_sensitive", True)
             if not isinstance(case_sensitive, bool):
                 raise ValueError("case_sensitive must be a boolean.")
-            result = [
+            matches = [
                 {
                     "path": match.relative_path,
                     "line": match.line_number,
@@ -85,12 +99,65 @@ def handle_request(request: object) -> dict[str, object]:
                 }
                 for match in explorer.search(query, case_sensitive=case_sensitive)
             ]
+            directory = request.get("directory")
+            if directory is not None:
+                if not isinstance(directory, str) or not directory.strip():
+                    raise ValueError("'directory' must be a non-empty relative path.")
+                resolved_directory = resolve_workspace_path(root, directory)
+                if not resolved_directory.is_dir():
+                    raise NotADirectoryError(f"Not a directory: {directory}")
+                result = [
+                    match
+                    for match in matches
+                    if Path(match["path"]).is_relative_to(
+                        Path(directory.replace("\\", "/"))
+                    )
+                ]
+            else:
+                result = matches
         elif operation == "read-file":
             relative_path = _required_string(request, "path")
             result = {
                 "path": relative_path,
                 "content": explorer.read_file(relative_path),
             }
+        elif operation == "write-file":
+            relative_path = _required_string(request, "path")
+            content = request.get("content")
+            allow_create = request.get("allow_create", False)
+            if not isinstance(content, str):
+                raise ValueError("'content' must be text.")
+            if not isinstance(allow_create, bool):
+                raise ValueError("'allow_create' must be a boolean.")
+            write_text_file(
+                root,
+                relative_path,
+                content,
+                allow_create=allow_create,
+            )
+            result = {"path": relative_path, "content": content}
+        elif operation == "create-directory":
+            relative_path = _required_string(request, "path")
+            create_directory(root, relative_path)
+            result = {"path": relative_path}
+        elif operation == "rename-path":
+            relative_path = _required_string(request, "path")
+            new_relative_path = _required_string(request, "new_path")
+            rename_workspace_path(root, relative_path, new_relative_path)
+            result = {"path": new_relative_path}
+        elif operation == "delete-path":
+            relative_path = _required_string(request, "path")
+            delete_workspace_path(root, relative_path)
+            result = {"path": relative_path}
+        elif operation == "read-image":
+            relative_path = _required_string(request, "path")
+            result = {
+                "path": relative_path,
+                "data_url": read_image_data_url(root, relative_path),
+            }
+        elif operation == "resolve-path":
+            relative_path = _required_string(request, "path")
+            result = {"path": str(resolve_workspace_path(root, relative_path))}
         elif operation == "summarize-file":
             relative_path = _required_string(request, "path")
             content = explorer.read_file(relative_path)
@@ -132,13 +199,13 @@ def serve(input_stream: TextIO, output_stream: TextIO) -> None:
             response: dict[str, object] = {
                 "id": None,
                 "ok": False,
-                "error": {"message": "Request exceeds the 1 MiB size limit."},
+                "error": {"message": "Request exceeds the 8 MiB size limit."},
             }
         elif len(line) > MAX_REQUEST_LENGTH:
             response = {
                 "id": None,
                 "ok": False,
-                "error": {"message": "Request exceeds the 1 MiB size limit."},
+                "error": {"message": "Request exceeds the 8 MiB size limit."},
             }
         else:
             try:

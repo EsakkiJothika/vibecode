@@ -1,4 +1,5 @@
 export type BackendStatus =
+  | { state: 'idle'; message: string }
   | { state: 'starting'; message: string }
   | { state: 'ready'; message: string }
   | { state: 'unavailable'; message: string };
@@ -26,6 +27,11 @@ export interface FileContents {
   content: string;
 }
 
+export interface ImagePreview {
+  path: string;
+  data_url: string;
+}
+
 export interface FileSummary {
   path: string;
   lines: number;
@@ -35,8 +41,26 @@ export interface FileSummary {
   note: string;
 }
 
+export type FileMenuAction =
+  | 'new-file'
+  | 'new-folder'
+  | 'open-file'
+  | 'open-folder'
+  | 'refresh-explorer'
+  | 'collapse-folders'
+  | 'save'
+  | 'save-as'
+  | 'save-all'
+  | 'close-editor'
+  | 'exit';
+
 export interface AgenticIdeApi {
   selectWorkspace(): Promise<WorkspaceInfo | undefined>;
+  selectFile(): Promise<string | undefined>;
+  selectSavePath(defaultPath?: string): Promise<string | undefined>;
+  revealPath(workspacePath: string, relativePath: string): Promise<void>;
+  quit(): void;
+  onFileMenuAction(callback: (action: FileMenuAction) => void): () => void;
   getBackendStatus(): Promise<BackendStatus>;
   onBackendStatus(callback: (status: BackendStatus) => void): () => void;
   listFiles(workspacePath: string): Promise<WorkspaceEntry[]>;
@@ -45,8 +69,23 @@ export interface AgenticIdeApi {
     workspacePath: string,
     query: string,
     caseSensitive: boolean,
+    directory?: string,
   ): Promise<TextMatch[]>;
   readFile(workspacePath: string, relativePath: string): Promise<FileContents>;
+  writeFile(
+    workspacePath: string,
+    relativePath: string,
+    content: string,
+    allowCreate?: boolean,
+  ): Promise<FileContents>;
+  createDirectory(workspacePath: string, relativePath: string): Promise<void>;
+  renamePath(
+    workspacePath: string,
+    relativePath: string,
+    newRelativePath: string,
+  ): Promise<void>;
+  deletePath(workspacePath: string, relativePath: string): Promise<void>;
+  readImage(workspacePath: string, relativePath: string): Promise<ImagePreview>;
   summarizeFile(
     workspacePath: string,
     relativePath: string,
