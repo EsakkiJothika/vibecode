@@ -80,6 +80,9 @@ executable. They do not require a model provider or network access.
   `Ctrl+S`. New text files can be created from the File menu and saved into the
   workspace. Unsaved changes are marked in their tabs, and closing an edited
   tab, switching workspaces, or exiting asks before discarding them.
+- Adjust Monaco's editor font size from the editor toolbar or with `Ctrl++`,
+  `Ctrl+-`, and `Ctrl+0`. The selected size is saved between launches and is
+  limited to 8-32px, with 14px as the default.
 - See a language-agnostic summary containing line, word, and character counts
   and a short non-empty-line preview; this uses no LLM.
 - Send a prompt to the existing optional model adapter when its environment
