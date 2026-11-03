@@ -1,4 +1,5 @@
 import Editor from '@monaco-editor/react';
+import type { editor as MonacoEditor } from 'monaco-editor';
 import {
   useCallback,
   useEffect,
@@ -36,6 +37,11 @@ type ContextMenuAction =
   | 'copy-relative-path'
   | 'rename'
   | 'delete';
+
+const DEFAULT_EDITOR_FONT_SIZE = 14;
+const MIN_EDITOR_FONT_SIZE = 8;
+const MAX_EDITOR_FONT_SIZE = 32;
+const EDITOR_FONT_SIZE_STORAGE_KEY = 'vibecode.editor.fontSize';
 
 interface OpenFile {
   path: string;
@@ -99,6 +105,15 @@ export function App(): ReactNode {
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState('');
   const [nextUntitledNumber, setNextUntitledNumber] = useState(1);
+  const [editorFontSize, setEditorFontSize] = useState(() => {
+    const savedSize = Number(window.localStorage.getItem(EDITOR_FONT_SIZE_STORAGE_KEY));
+    return Number.isInteger(savedSize) &&
+      savedSize >= MIN_EDITOR_FONT_SIZE &&
+      savedSize <= MAX_EDITOR_FONT_SIZE
+      ? savedSize
+      : DEFAULT_EDITOR_FONT_SIZE;
+  });
+  const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
   const activeFile = openFiles.find((file) => file.path === activePath);
   const hasUnsavedChanges = openFiles.some(
@@ -107,6 +122,64 @@ export function App(): ReactNode {
   const activeFileIsDirty =
     !!activeFile && activeFile.content !== activeFile.savedContent;
   const tree = useMemo(() => createTree(entries), [entries]);
+
+  const increaseEditorFontSize = useCallback(() => {
+    setEditorFontSize((size) => Math.min(size + 1, MAX_EDITOR_FONT_SIZE));
+  }, []);
+  const decreaseEditorFontSize = useCallback(() => {
+    setEditorFontSize((size) => Math.max(size - 1, MIN_EDITOR_FONT_SIZE));
+  }, []);
+  const resetEditorFontSize = useCallback(() => {
+    setEditorFontSize(DEFAULT_EDITOR_FONT_SIZE);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      EDITOR_FONT_SIZE_STORAGE_KEY,
+      String(editorFontSize),
+    );
+    editorRef.current?.updateOptions({ fontSize: editorFontSize });
+  }, [editorFontSize]);
+
+  useEffect(() => {
+    const handleFontSizeShortcut = (event: KeyboardEvent) => {
+      if (
+        (!event.ctrlKey && !event.metaKey) ||
+        event.altKey ||
+        event.isComposing ||
+        !editorRef.current?.hasTextFocus()
+      ) {
+        return;
+      }
+
+      switch (event.key) {
+        case '+':
+        case '=':
+          increaseEditorFontSize();
+          break;
+        case '-':
+        case '_':
+          decreaseEditorFontSize();
+          break;
+        case '0':
+          resetEditorFontSize();
+          break;
+        default:
+          return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    window.addEventListener('keydown', handleFontSizeShortcut, true);
+    return () =>
+      window.removeEventListener('keydown', handleFontSizeShortcut, true);
+  }, [
+    decreaseEditorFontSize,
+    increaseEditorFontSize,
+    resetEditorFontSize,
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -888,6 +961,29 @@ export function App(): ReactNode {
                 </div>
               ))}
             </div>
+            <div className="editor-font-controls" role="group" aria-label="Editor font size">
+              <button
+                className="editor-font-size-button"
+                aria-label="Decrease editor font size"
+                title="Decrease editor font size (Ctrl+-)"
+                disabled={editorFontSize <= MIN_EDITOR_FONT_SIZE}
+                onClick={decreaseEditorFontSize}
+              >
+                -
+              </button>
+              <span className="editor-font-size-value" aria-live="polite">
+                {editorFontSize}px
+              </span>
+              <button
+                className="editor-font-size-button"
+                aria-label="Increase editor font size"
+                title="Increase editor font size (Ctrl++)"
+                disabled={editorFontSize >= MAX_EDITOR_FONT_SIZE}
+                onClick={increaseEditorFontSize}
+              >
+                +
+              </button>
+            </div>
             <button
               className="editor-action"
               disabled={!activeFileIsDirty || savingFile}
@@ -924,10 +1020,15 @@ export function App(): ReactNode {
                 theme="vs-dark"
                 value={activeFile.content}
                 onChange={updateEditor}
+                onMount={(editor) => {
+                  editorRef.current = editor;
+                  editor.updateOptions({ fontSize: editorFontSize });
+                }}
                 options={{
                   readOnly: false,
+                  autoClosingBrackets: 'always',
+                  autoClosingQuotes: 'always',
                   minimap: { enabled: false },
-                  fontSize: 13,
                   fontFamily: 'Cascadia Code, Consolas, monospace',
                   scrollBeyondLastLine: false,
                   automaticLayout: true,

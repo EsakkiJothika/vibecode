@@ -598,6 +598,44 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
+.editor-font-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  margin: 0 5px;
+}
+
+.editor-font-size-button {
+  width: 23px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #b7bbc6;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.editor-font-size-button:hover:not(:disabled) {
+  background: #2a2d36;
+  color: white;
+}
+
+.editor-font-size-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.editor-font-size-value {
+  min-width: 38px;
+  color: #9aa0ad;
+  font-size: 11px;
+  text-align: center;
+  white-space: nowrap;
+}
+
 .editor-content {
   position: relative;
   min-height: 0;
