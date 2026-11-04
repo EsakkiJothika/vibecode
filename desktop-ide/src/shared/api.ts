@@ -64,6 +64,11 @@ export interface AgenticIdeApi {
   getBackendStatus(): Promise<BackendStatus>;
   onBackendStatus(callback: (status: BackendStatus) => void): () => void;
   listFiles(workspacePath: string): Promise<WorkspaceEntry[]>;
+  createWorkspaceItem(
+    workspacePath: string,
+    name: string,
+    kind: 'file' | 'directory',
+  ): Promise<string>;
   searchFiles(workspacePath: string, query: string): Promise<string[]>;
   searchText(
     workspacePath: string,

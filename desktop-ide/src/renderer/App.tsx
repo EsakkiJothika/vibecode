@@ -23,6 +23,7 @@ import type {
 type Activity = 'explorer' | 'search' | 'source-control' | 'agent';
 type SearchMode = 'files' | 'text';
 type BottomTab = 'terminal' | 'problems';
+type NewItemKind = 'file' | 'directory';
 type ContextMenuAction =
   | 'open'
   | 'preview'
@@ -66,6 +67,10 @@ export function App(): ReactNode {
   const [workspace, setWorkspace] = useState<WorkspaceInfo | null>(null);
   const [entries, setEntries] = useState<WorkspaceEntry[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
+  const [newItemKind, setNewItemKind] = useState<NewItemKind | null>(null);
+  const [newItemName, setNewItemName] = useState('');
+  const [treeExpandedByDefault, setTreeExpandedByDefault] = useState(true);
+  const [treeRevision, setTreeRevision] = useState(0);
   const [backendStatus, setBackendStatus] = useState<BackendStatus>({
     state: 'idle',
     message: 'Python backend starts when you choose a workspace.',
@@ -225,6 +230,9 @@ export function App(): ReactNode {
       setActivePath(null);
       setSummary(null);
       setSearchQuery('');
+      setTreeExpandedByDefault(true);
+      setTreeRevision((revision) => revision + 1);
+      setNewItemKind(null);
       setSearchDirectory(null);
       await reloadFiles(selected);
     } catch (reason) {
@@ -259,6 +267,32 @@ export function App(): ReactNode {
     },
     [openFiles, workspace],
   );
+
+  const createWorkspaceItem = useCallback(async () => {
+    if (!workspace || !newItemKind) return;
+    const name = newItemName.trim();
+    if (!name) {
+      setError(`Enter a ${newItemKind === 'file' ? 'file' : 'folder'} name.`);
+      return;
+    }
+
+    setError(null);
+    try {
+      const path = await window.agenticIDE.createWorkspaceItem(
+        workspace.path,
+        name,
+        newItemKind,
+      );
+      setNewItemKind(null);
+      setNewItemName('');
+      await reloadFiles(workspace);
+      if (newItemKind === 'file') {
+        await openFile(path);
+      }
+    } catch (reason) {
+      setError(errorMessage(reason));
+    }
+  }, [newItemKind, newItemName, openFile, reloadFiles, workspace]);
 
   const runSearch = useCallback(async () => {
     if (!workspace || !searchQuery.trim()) return;
@@ -793,11 +827,6 @@ export function App(): ReactNode {
           {workspace?.name ?? 'No workspace open'}
         </span>
         <div className="title-actions">
-          {workspace && (
-            <button className="title-button" onClick={() => void reloadFiles(workspace)}>
-              Refresh
-            </button>
-          )}
           <button className="title-button primary" onClick={() => void chooseWorkspace()}>
             {workspace ? 'Change folder' : 'Open folder'}
           </button>
@@ -820,22 +849,36 @@ export function App(): ReactNode {
           <div className="pane-heading">
             <span>{activityTitle(activity)}</span>
             {workspace && activity === 'explorer' && (
-              <div className="explorer-toolbar">
+              <div className="explorer-toolbar" aria-label="Explorer actions">
                 <button
                   className="explorer-toolbar-button"
-                  title="New File (Ctrl+N)"
+                  title="New File"
                   aria-label="New File"
-                  onClick={() => createUntitledFile()}
+                  onClick={() => {
+                    setNewItemKind('file');
+                    setNewItemName('');
+                    setError(null);
+                  }}
                 >
-                  <span aria-hidden="true">▤<b>+</b></span>
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3 1.75h6l4 4v8.5a.75.75 0 0 1-.75.75h-9.5a.75.75 0 0 1-.75-.75v-11.75A.75.75 0 0 1 3 1.75Z" />
+                    <path d="M9 2v4h4M8 8v5M5.5 10.5h5" />
+                  </svg>
                 </button>
                 <button
                   className="explorer-toolbar-button"
-                  title="New Folder (Ctrl+Shift+N)"
+                  title="New Folder"
                   aria-label="New Folder"
-                  onClick={() => void createFolder('')}
+                  onClick={() => {
+                    setNewItemKind('directory');
+                    setNewItemName('');
+                    setError(null);
+                  }}
                 >
-                  <span aria-hidden="true">▰<b>+</b></span>
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M1.75 4.25a1 1 0 0 1 1-1h3l1.5 1.5h6a1 1 0 0 1 1 1v6.5a1 1 0 0 1-1 1h-10.5a1 1 0 0 1-1-1Z" />
+                    <path d="M8 6.75v5M5.5 9.25h5" />
+                  </svg>
                 </button>
                 <button
                   className="explorer-toolbar-button"
@@ -844,15 +887,24 @@ export function App(): ReactNode {
                   disabled={filesLoading}
                   onClick={() => void reloadFiles(workspace)}
                 >
-                  <span aria-hidden="true">↻</span>
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M13.2 6A5.5 5.5 0 0 0 3 4.3L1.75 5.5M1.75 2.5v3h3" />
+                    <path d="M2.8 10A5.5 5.5 0 0 0 13 11.7l1.25-1.2M14.25 13.5v-3h-3" />
+                  </svg>
                 </button>
                 <button
                   className="explorer-toolbar-button"
                   title="Collapse All Folders (Ctrl+Alt+0)"
                   aria-label="Collapse All Folders"
-                  onClick={() => setTreeCollapseVersion((version) => version + 1)}
+                  onClick={() => {
+                    setTreeExpandedByDefault(false);
+                    setTreeRevision((revision) => revision + 1);
+                    setTreeCollapseVersion((version) => version + 1);
+                  }}
                 >
-                  <span aria-hidden="true">⊟</span>
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M2.25 2.25h11.5v11.5H2.25zM5 8h6" />
+                  </svg>
                 </button>
               </div>
             )}
@@ -870,11 +922,50 @@ export function App(): ReactNode {
                 ) : (
                   <>
                     <div className="section-label">{workspace.name.toUpperCase()}</div>
+                    {newItemKind && (
+                      <form
+                        className="new-item-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void createWorkspaceItem();
+                        }}
+                      >
+                        <input
+                          autoFocus
+                          value={newItemName}
+                          onChange={(event) => setNewItemName(event.target.value)}
+                          placeholder={newItemKind === 'file' ? 'File name' : 'Folder name'}
+                          aria-label={newItemKind === 'file' ? 'File name' : 'Folder name'}
+                          maxLength={255}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Escape') {
+                              setNewItemKind(null);
+                              setNewItemName('');
+                            }
+                          }}
+                        />
+                        <button type="submit" title="Create" aria-label="Create">✓</button>
+                        <button
+                          type="button"
+                          title="Cancel"
+                          aria-label="Cancel"
+                          onClick={() => {
+                            setNewItemKind(null);
+                            setNewItemName('');
+                          }}
+                        >
+                          ×
+                        </button>
+                      </form>
+                    )}
                     {filesLoading ? (
                       <div className="muted-message">Loading workspace…</div>
                     ) : (
                       <FileTree
+                        key={treeRevision}
                         nodes={tree}
+                        defaultExpanded={treeExpandedByDefault}
+                        onOpen={openFile}
                         collapseVersion={treeCollapseVersion}
                         onAction={handleContextAction}
                       />
@@ -1371,6 +1462,8 @@ function SearchSidebar(props: {
 
 function FileTree(props: {
   nodes: TreeNode[];
+  defaultExpanded: boolean;
+  onOpen(path: string): void;
   collapseVersion: number;
   onAction(path: string, kind: TreeNode['kind'], action: ContextMenuAction): void;
 }): ReactNode {
@@ -1381,6 +1474,8 @@ function FileTree(props: {
           key={node.path}
           node={node}
           depth={0}
+          defaultExpanded={props.defaultExpanded}
+          onOpen={props.onOpen}
           collapseVersion={props.collapseVersion}
           onAction={props.onAction}
         />
@@ -1392,10 +1487,14 @@ function FileTree(props: {
 function FileTreeNode(props: {
   node: TreeNode;
   depth: number;
+  defaultExpanded: boolean;
+  onOpen(path: string): void;
   collapseVersion: number;
   onAction(path: string, kind: TreeNode['kind'], action: ContextMenuAction): void;
 }): ReactNode {
-  const [expanded, setExpanded] = useState(props.depth === 0);
+  const [expanded, setExpanded] = useState(
+    props.depth === 0 && props.defaultExpanded,
+  );
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const previousCollapseVersion = useRef(props.collapseVersion);
 
@@ -1498,7 +1597,6 @@ function FileTreeNode(props: {
       title: 'Sharing is not implemented yet.',
     },
   ];
-
   if (props.node.kind === 'directory') {
     return (
       <>
@@ -1516,7 +1614,9 @@ function FileTreeNode(props: {
           aria-expanded={expanded}
         >
           <span className={`tree-chevron ${expanded ? 'expanded' : ''}`}>›</span>
-          <span className="tree-icon">{expanded ? '▾' : '▸'}</span>
+          <svg className={`tree-icon ${expanded ? 'expanded' : ''}`} viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M1.5 4.5a1 1 0 0 1 1-1h3l1.5 1.5h6.5a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z" />
+          </svg>
           <span>{props.node.name}</span>
         </button>
         {expanded && props.node.children.map((child) => (
@@ -1524,6 +1624,8 @@ function FileTreeNode(props: {
             key={child.path}
             node={child}
             depth={props.depth + 1}
+            defaultExpanded={props.defaultExpanded}
+            onOpen={props.onOpen}
             collapseVersion={props.collapseVersion}
             onAction={props.onAction}
           />
@@ -1547,7 +1649,7 @@ function FileTreeNode(props: {
       <button
         className="tree-row file"
         style={{ paddingLeft: 25 + props.depth * 14 }}
-        onClick={() => props.onAction(props.node.path, 'file', 'open')}
+        onClick={() => props.onOpen(props.node.path)}
         onContextMenu={(event) => {
           event.preventDefault();
           setContextMenu({
@@ -1771,7 +1873,7 @@ function fileGlyph(path: string): string {
   if (['md', 'txt'].includes(extension ?? '')) return '≡';
   if (['html', 'xml'].includes(extension ?? '')) return '◇';
   if (['css', 'scss'].includes(extension ?? '')) return '#';
-  return '·';
+  return '◈';
 }
 
 function languageForPath(path: string): string {

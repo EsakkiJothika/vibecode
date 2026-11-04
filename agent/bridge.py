@@ -20,6 +20,14 @@ from tools.workspace_operations import (
 MAX_REQUEST_LENGTH = 8 * 1024 * 1024
 MAX_SUMMARY_PREVIEW_LINES = 8
 MAX_SUMMARY_PREVIEW_LINE_LENGTH = 240
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
 
 
 def handle_request(request: object) -> dict[str, object]:
@@ -46,12 +54,13 @@ def handle_request(request: object) -> dict[str, object]:
             }
         if operation not in {
             "list-files",
+            "create-file",
+            "create-directory",
             "search-files",
             "search-text",
             "read-file",
             "write-file",
             "summarize-file",
-            "create-directory",
             "rename-path",
             "delete-path",
             "read-image",
@@ -75,6 +84,26 @@ def handle_request(request: object) -> dict[str, object]:
                 }
                 for entry in entries
             ]
+        elif operation == "create-file":
+            name = _required_string(request, "name")
+            _validate_new_item_name(name)
+            item_path = root / name
+            with item_path.open("x", encoding="utf-8"):
+                pass
+            result = {"path": name}
+        elif operation == "create-directory" and "name" in request:
+            if "path" in request:
+                raise ValueError(
+                    "Provide either 'name' or 'path' for create-directory, not both."
+                )
+            name = _required_string(request, "name")
+            _validate_new_item_name(name)
+            (root / name).mkdir()
+            result = {"path": name}
+        elif operation == "create-directory":
+            relative_path = _required_string(request, "path")
+            create_directory(root, relative_path)
+            result = {"path": relative_path}
         elif operation == "search-files":
             query = _required_string(request, "query")
             needle = query.casefold()
@@ -136,10 +165,6 @@ def handle_request(request: object) -> dict[str, object]:
                 allow_create=allow_create,
             )
             result = {"path": relative_path, "content": content}
-        elif operation == "create-directory":
-            relative_path = _required_string(request, "path")
-            create_directory(root, relative_path)
-            result = {"path": relative_path}
         elif operation == "rename-path":
             relative_path = _required_string(request, "path")
             new_relative_path = _required_string(request, "new_path")
@@ -230,6 +255,19 @@ def _required_string(request: dict[str, object], key: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"'{key}' must be a non-empty string.")
     return value
+
+
+def _validate_new_item_name(name: str) -> None:
+    if (
+        len(name) > 255
+        or name in {".", ".."}
+        or name.endswith((" ", "."))
+        or any(ord(character) < 32 or character in '<>:"/\\|?*' for character in name)
+        or name.split(".", 1)[0].upper() in WINDOWS_RESERVED_NAMES
+    ):
+        raise ValueError(
+            "Use a valid file or folder name without a path or reserved characters."
+        )
 
 
 if __name__ == "__main__":

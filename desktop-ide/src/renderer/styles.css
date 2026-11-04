@@ -275,6 +275,16 @@ textarea:focus-visible {
   font-weight: 500;
 }
 
+.explorer-toolbar-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.15;
+}
+
 .explorer-scroll {
   min-height: 0;
   flex: 1;
@@ -328,8 +338,12 @@ textarea:focus-visible {
 
 .tree-chevron {
   display: inline-block;
-  width: 9px;
+  width: 12px;
+  flex: 0 0 12px;
   color: #828896;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1;
   transform: rotate(0);
 }
 
@@ -338,21 +352,59 @@ textarea:focus-visible {
 }
 
 .tree-icon {
-  color: #c6a9ff;
-  font-size: 11px;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 14px;
+  fill: #c6a9ff;
+  opacity: 0.95;
+}
+
+.tree-icon.expanded {
+  fill: #d3c3ff;
 }
 
 .file-glyph {
   display: inline-grid;
-  width: 15px;
-  flex: 0 0 15px;
+  width: 16px;
+  flex: 0 0 16px;
   place-items: center;
-  color: #8eb6ed;
-  font-size: 11px;
+  color: #80b7ff;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.tree-row:nth-child(4n) .file-glyph {
-  color: #e3b47c;
+.new-item-form {
+  display: flex;
+  gap: 3px;
+  padding: 3px 8px 6px 12px;
+}
+
+.new-item-form input {
+  width: 0;
+  min-width: 0;
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid #62569a;
+  border-radius: 3px;
+  background: #111318;
+  color: #e5e7ee;
+  outline: none;
+  user-select: text;
+}
+
+.new-item-form button {
+  width: 23px;
+  flex: 0 0 23px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--surface-2);
+  color: #c7cbd4;
+  cursor: pointer;
+}
+
+.new-item-form button:hover {
+  background: var(--surface-3);
+  color: #fff;
 }
 
 .file-context-menu {

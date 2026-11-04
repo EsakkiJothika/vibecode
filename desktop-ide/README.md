@@ -61,6 +61,8 @@ executable. They do not require a model provider or network access.
   as, save all, close the active editor, or exit. Common shortcuts are
   available for these actions.
 - Browse files and folders, search file names, and search text within files.
+- Use the Explorer toolbar to create empty files and folders in the workspace
+  root.
 - Use the Explorer toolbar or File/View menus to create files/folders, reload
   the workspace tree, and collapse all folders. Shortcuts: `Ctrl+N` (new file),
   `Ctrl+Shift+N` (new folder), `Ctrl+R` (reload Explorer), and `Ctrl+Alt+0`
@@ -93,7 +95,7 @@ executable. They do not require a model provider or network access.
 
 The application does not execute workspace files or run terminal commands.
 File edits are written only after an explicit save and are restricted to an
-files inside the selected workspace. Save As and new-file creation use the
+all files inside the selected workspace. Save As and new-file creation use the
 native save dialog, and Python validates the final path, including symlinks.
 Search, reading, and writing
 inherit the Python explorer's default excluded directories and 1 MiB file-size
@@ -121,9 +123,10 @@ The Python backend uses a newline-delimited JSON protocol:
 `python -m agent.bridge` is launched with the Python project root as its
 working directory. Supported operations are workspace validation, file
 listing, file-name and text search, safe text reading, basic summary, optional
-model chat, explicit file saving, and health checking. The bridge accepts
-requests up to 8 MiB so JSON-encoded editor contents can stay within the
-1 MiB-per-file limit. The existing interactive `main.py` CLI is unchanged.
+model chat, explicit file saving, creating empty root-level files and folders,
+and health checking. The bridge accepts requests up to 8 MiB so JSON-encoded
+editor contents can stay within the 1 MiB-per-file limit. The existing
+interactive `main.py` CLI is unchanged.
 
 ## Performance notes
 
