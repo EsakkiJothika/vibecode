@@ -84,6 +84,23 @@ function registerIpcHandlers(): void {
     });
   });
   ipcMain.handle(
+    'agentic-ide:create-workspace-item',
+    async (_event, workspacePath: unknown, name: unknown, kind: unknown) => {
+      const workspace = requireSelectedWorkspace(workspacePath);
+      if (typeof name !== 'string' || name.length > 255) {
+        throw new Error('File or folder name must be at most 255 characters.');
+      }
+      if (kind !== 'file' && kind !== 'directory') {
+        throw new Error('Choose whether to create a file or folder.');
+      }
+      return requireBackend().request({
+        operation: kind === 'file' ? 'create-file' : 'create-directory',
+        workspace,
+        name,
+      });
+    },
+  );
+  ipcMain.handle(
     'agentic-ide:search-files',
     async (_event, workspacePath: unknown, query: unknown) => {
       const workspace = requireSelectedWorkspace(workspacePath);

@@ -12,6 +12,14 @@ from tools.workspace import iter_workspace_files
 MAX_REQUEST_LENGTH = 1024 * 1024
 MAX_SUMMARY_PREVIEW_LINES = 8
 MAX_SUMMARY_PREVIEW_LINE_LENGTH = 240
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    *(f"COM{index}" for index in range(1, 10)),
+    *(f"LPT{index}" for index in range(1, 10)),
+}
 
 
 def handle_request(request: object) -> dict[str, object]:
@@ -38,6 +46,8 @@ def handle_request(request: object) -> dict[str, object]:
             }
         if operation not in {
             "list-files",
+            "create-file",
+            "create-directory",
             "search-files",
             "search-text",
             "read-file",
@@ -61,6 +71,16 @@ def handle_request(request: object) -> dict[str, object]:
                 }
                 for entry in entries
             ]
+        elif operation in {"create-file", "create-directory"}:
+            name = _required_string(request, "name")
+            _validate_new_item_name(name)
+            item_path = root / name
+            if operation == "create-file":
+                with item_path.open("x", encoding="utf-8"):
+                    pass
+            else:
+                item_path.mkdir()
+            result = {"path": name}
         elif operation == "search-files":
             query = _required_string(request, "query")
             needle = query.casefold()
@@ -163,6 +183,19 @@ def _required_string(request: dict[str, object], key: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"'{key}' must be a non-empty string.")
     return value
+
+
+def _validate_new_item_name(name: str) -> None:
+    if (
+        len(name) > 255
+        or name in {".", ".."}
+        or name.endswith((" ", "."))
+        or any(ord(character) < 32 or character in '<>:"/\\|?*' for character in name)
+        or name.split(".", 1)[0].upper() in WINDOWS_RESERVED_NAMES
+    ):
+        raise ValueError(
+            "Use a valid file or folder name without a path or reserved characters."
+        )
 
 
 if __name__ == "__main__":

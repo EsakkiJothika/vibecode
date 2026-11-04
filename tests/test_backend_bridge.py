@@ -74,6 +74,25 @@ class BackendBridgeTests(unittest.TestCase):
         self.assertEqual(summary_response["result"]["lines"], 2)
         self.assertIn("no LLM", summary_response["result"]["note"])
 
+    def test_creates_empty_files_and_directories_in_workspace_root(self) -> None:
+        file_response = self.request("create-file", name="notes.md")
+        directory_response = self.request("create-directory", name="drafts")
+
+        self.assertEqual(file_response["result"], {"path": "notes.md"})
+        self.assertEqual(directory_response["result"], {"path": "drafts"})
+        self.assertEqual((self.workspace / "notes.md").read_text(encoding="utf-8"), "")
+        self.assertTrue((self.workspace / "drafts").is_dir())
+
+    def test_rejects_existing_or_unsafe_new_item_names(self) -> None:
+        existing = self.request("create-file", name="src")
+        traversal = self.request("create-file", name="../outside.txt")
+        reserved = self.request("create-directory", name="CON")
+
+        self.assertFalse(existing["ok"])
+        self.assertFalse(traversal["ok"])
+        self.assertFalse(reserved["ok"])
+        self.assertFalse((self.workspace.parent / "outside.txt").exists())
+
     def test_rejects_paths_outside_workspace_and_unknown_operations(self) -> None:
         escaped = self.request("read-file", path="../outside.txt")
         unknown = self.request("execute", workspace=str(self.workspace))

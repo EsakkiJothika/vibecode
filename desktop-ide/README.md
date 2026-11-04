@@ -45,7 +45,8 @@ release milestone.
 ## Features
 
 - Select a workspace directory using the native folder picker.
-- Browse files and folders, search file names, and search text within files.
+- Browse files and folders, create empty files and folders in the workspace
+  root, search file names, and search text within files.
 - Open UTF-8 text files in the embedded Monaco editor (read-only for now).
 - See a language-agnostic summary containing line, word, and character counts
   and a short non-empty-line preview; this uses no LLM.
@@ -55,9 +56,10 @@ release milestone.
 - View backend connection status, errors, a Problems panel, and a clearly
   non-executing Terminal placeholder.
 
-The application does not execute workspace files, run terminal commands, or
-edit project files. Search and reading inherit the Python explorer's default
-excluded directories and 1 MiB file-size limit.
+The application does not execute workspace files or run terminal commands.
+The Explorer can create empty root-level files and folders; existing file
+contents remain read-only. Search and reading inherit the Python explorer's
+default excluded directories and 1 MiB file-size limit.
 
 ## Security boundary
 
@@ -75,9 +77,9 @@ The Python backend uses a newline-delimited JSON protocol:
 
 `python -m agent.bridge` is launched with the Python project root as its
 working directory. Supported operations are workspace validation, file
-listing, file-name and text search, safe text reading, basic summary, optional
-model chat, and health checking. The existing interactive `main.py` CLI is
-unchanged.
+listing, creating empty root-level files and folders, file-name and text
+search, safe text reading, basic summary, optional model chat, and health
+checking. The existing interactive `main.py` CLI is unchanged.
 
 ## Performance notes
 

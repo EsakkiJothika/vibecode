@@ -28,6 +28,15 @@ const api: AgenticIdeApi = {
       'agentic-ide:list-files',
       workspacePath,
     ) as Promise<WorkspaceEntry[]>,
+  createWorkspaceItem: async (workspacePath, name, kind) => {
+    const result = await ipcRenderer.invoke(
+      'agentic-ide:create-workspace-item',
+      workspacePath,
+      name,
+      kind,
+    ) as { path: string };
+    return result.path;
+  },
   searchFiles: (workspacePath, query) =>
     ipcRenderer.invoke(
       'agentic-ide:search-files',
